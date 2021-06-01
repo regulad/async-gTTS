@@ -13,10 +13,10 @@ class NoInitialisedSession(LibraryException):
 class HTTPException(LibraryException):
     """Raised when an HTTP Error occurs."""
 
-    def __init__(self, *args, status_code: int, **kwargs):
+    def __init__(self, *args, status_code: int):
         self.status_code = status_code
-        1
-        super().__init__(*args, **kwargs)
+
+        super().__init__(*args)
 
 
 class RatelimitException(HTTPException):
@@ -27,18 +27,18 @@ class RatelimitException(HTTPException):
         resp_headers: Response headers as dict
     """
 
-    def __init__(self, *args, resp_content: str, resp_headers: dict, **kwargs):
+    def __init__(self, *args, resp_content, resp_headers: dict):
         self.resp_content = resp_content
         self.resp_headers = resp_headers
 
-        super().__init__(*args, status_code=429, **kwargs)
+        super().__init__(*args, status_code=429)
 
 
 class AuthorizationException(HTTPException):
     """Raised when getting a 401 response from Google"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, status_code=401, **kwargs)
+    def __init__(self, *args):
+        super().__init__(*args, status_code=401)
 
 
 class UnknownResponse(LibraryException):
@@ -48,7 +48,7 @@ class UnknownResponse(LibraryException):
         resp: The unrecognisable JSON response decoded into a dictionary.
     """
 
-    def __init__(self, *args, resp: dict, **kwargs):
+    def __init__(self, *args, resp: dict):
         self.resp = resp
 
-        super().__init__(*args, **kwargs)
+        super().__init__(*args)
