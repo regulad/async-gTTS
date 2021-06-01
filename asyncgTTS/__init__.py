@@ -1,14 +1,5 @@
-from aiohttp import ClientSession
-
-from .asyncgTTS import asyncgTTS
-from .easygTTS import easygTTS
+from .asyncgTTS import *
 from .errors import *
+from .token import *
 
-__all__ = ("setup", )
-
-async def setup(premium: bool, *args, **kwargs):
-    if not kwargs.get("session"):
-        kwargs["session"] = ClientSession()
-
-    gtts = asyncgTTS if premium else easygTTS
-    return gtts(*args, **kwargs)
+__version__ = "0.2.0"

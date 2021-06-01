@@ -1,39 +1,30 @@
 # asyncgTTS
 
-Asynchronous interfaces to the [official Google Text to Speech](https://cloud.google.com/text-to-speech) or [easygTTS](https://github.com/Gnome-py/easy-gtts-api) APIs written with aiohttp.  
+Asynchronous interfaces to the [official Google Text to Speech](https://cloud.google.com/text-to-speech) API written with aiohttp.
 
-## Examples
+[googleapis/python-texttospeech](https://github.com/googleapis/python-texttospeech/blob/3125b714f547191a830faecb5ae0b830e53e99fd/google/cloud/texttospeech_v1/services/text_to_speech/async_client.py#L35) is a much better version of this same idea, if you need it.
 
-### asyncgTTS
+### Example
+
 ```python
 import asyncio
-import asyncgTTS
-from subprocess import PIPE, run
+import json
+
+from asyncgTTS import AsyncGTTS
 
 async def main():
-    async with await asyncgTTS.setup(premium=True, service_account_json_location="SERVICE_ACCOUNT.json") as gtts:
-        hello_world_ogg = await gtts.get("Hello World", voice_lang=("en-US-Standard-B", "en-us"))
-        hello_world_mp3 = await gtts.get("Hello World", voice_lang=("en-US-Standard-A", "en-us"), ret_type="MP3")
+    with open("SERVICE_ACCOUNT.JSON") as service_account_json:
+        service_account_dict = json.load(service_account_json)
+    
+    async with AsyncGTTS.from_service_account(service_account_dict) as google_tts:
+        hello_world_ogg = await google_tts.get("Hello World", voice_lang=("en-US-Standard-B", "en-us"))
+        hello_world_mp3 = await google_tts.get("Hello World", voice_lang=("en-US-Standard-A", "en-us"), ret_type="MP3")
 
     with open("Hello_world.ogg", "wb") as f:
         f.write(hello_world_ogg)
+
     with open("Hello_world.mp3", "wb") as f:
         f.write(hello_world_mp3)
-
-asyncio.run(main())
-```
-
-### easygTTS
-```python
-import asyncgTTS
-import asyncio
-
-async def main():
-    async with await asyncgTTS.setup(premium=False) as gtts:
-        hello_world = await gtts.get(text="Hello World")
-    
-    with open("Hello_world.mp3", "wb") as f:
-        f.write(hello_world)
 
 asyncio.run(main())
 ```
