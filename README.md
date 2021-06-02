@@ -10,21 +10,19 @@ Asynchronous interfaces to the [official Google Text to Speech](https://cloud.go
 import asyncio
 import json
 
-from asyncgTTS import AsyncGTTS
+from asyncgTTS import AsyncGTTSSession
+
 
 async def main():
     with open("SERVICE_ACCOUNT.JSON") as service_account_json:
         service_account_dict = json.load(service_account_json)
-    
-    async with AsyncGTTS.from_service_account(service_account_dict) as google_tts:
-        hello_world_ogg = await google_tts.get("Hello World", voice_lang=("en-US-Standard-B", "en-us"))
-        hello_world_mp3 = await google_tts.get("Hello World", voice_lang=("en-US-Standard-A", "en-us"), ret_type="MP3")
 
-    with open("Hello_world.ogg", "wb") as f:
-        f.write(hello_world_ogg)
+    async with AsyncGTTSSession.from_service_account(service_account_dict) as google_tts:
+        audio_bytes = await google_tts.synthesize("Hello World")
 
     with open("Hello_world.mp3", "wb") as f:
-        f.write(hello_world_mp3)
+        f.write(audio_bytes)
+
 
 asyncio.run(main())
 ```

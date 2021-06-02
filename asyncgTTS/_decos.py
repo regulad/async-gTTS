@@ -6,7 +6,7 @@ from .errors import NoInitialisedSession
 def require_session(func):
     @wraps(func)
     async def wrapper(self, *args, **kwargs):
-        if self._client_session:
+        if self.client_session:
             return await func(self, *args, **kwargs)
 
         raise NoInitialisedSession

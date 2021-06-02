@@ -1,3 +1,5 @@
+from aiohttp import ClientResponse
+
 class LibraryException(Exception):
     """Base Error that other errors inherit from."""
 
@@ -41,14 +43,20 @@ class AuthorizationException(HTTPException):
         super().__init__(*args, status_code=401)
 
 
-class UnknownResponse(LibraryException):
+class UnknownResponse(HTTPException):
     """Raised when getting an unknown JSON response from Google
 
     Parameters:
         resp: The unrecognisable JSON response decoded into a dictionary.
     """
 
-    def __init__(self, *args, resp: dict):
+    def __init__(self, *args, resp: ClientResponse):
         self.resp = resp
 
-        super().__init__(*args)
+        super().__init__(*args, status_code=200)
+
+
+__all__ = [
+    "LibraryException", "NoInitialisedSession", "HTTPException", "RatelimitException", "AuthorizationException",
+    "UnknownResponse"
+]
