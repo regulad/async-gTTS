@@ -13,7 +13,6 @@ class JSONWebTokenHandler:
         self._audience = audience
 
         self._issued_time = time()
-        self._expire_time = self._issued_time + 3600
 
     def __str__(self):
         return self.token
@@ -26,7 +25,7 @@ class JSONWebTokenHandler:
     def _payload(self) -> dict:
         """Returns payload to be encoded"""
 
-        if time() > self._expire_time:
+        if time() > self._issued_time + 1200:
             self._issued_time = time()
 
         payload = {
@@ -34,7 +33,7 @@ class JSONWebTokenHandler:
             "iss": self._service_account.client_email,
             "sub": self._service_account.client_email,
             "iat": self._issued_time,
-            "exp": self._expire_time,
+            "exp": self._issued_time + 1200,
         }
 
         return payload
