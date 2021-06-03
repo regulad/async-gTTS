@@ -6,9 +6,21 @@ from aiohttp import ClientSession, ClientResponse
 
 from ._decos import require_session
 from .errors import *
+from .config import TextSynthesizeRequestBody, ServiceAccount
 from .token import JSONWebTokenHandler
 
-_GOOGLE_API_ENDPOINT = "https://texttospeech.googleapis.com/v1/"
+_GOOGLE_API_ENDPOINT = "https://texttospeech.googleapis.com/v1beta1/"
+
+
+def _process_resp(resp: ClientResponse) -> None:
+    if resp.ok:
+        return None
+    elif resp.status == 401:
+        raise AuthorizationException(resp.reason)
+    elif resp.status == 429:
+        raise RatelimitException(resp_content=resp.content, resp_headers=dict(resp.headers))
+    else:
+        raise HTTPException(resp.reason, status_code=resp.status)
 
 
 class AsyncGTTSSession:
@@ -23,7 +35,10 @@ class AsyncGTTSSession:
             *, client_session: ClientSession = None, endpoint: str = _GOOGLE_API_ENDPOINT
     ):
         self._json_web_token_handler = json_web_token_handler
-        self._endpoint = endpoint
+
+        parsed_endpoint = urlparse(endpoint)
+
+        self._endpoint = f"{parsed_endpoint.scheme}://{parsed_endpoint.netloc}/"
 
         self.client_session = client_session
         self._client_session_is_passed = self.client_session is not None
@@ -39,7 +54,7 @@ class AsyncGTTSSession:
 
     @classmethod
     def from_service_account(
-            cls, service_account: dict, *, client_session: ClientSession = None, endpoint: str = _GOOGLE_API_ENDPOINT
+            cls, service_account: ServiceAccount, *, client_session: ClientSession = None, endpoint: str = _GOOGLE_API_ENDPOINT
     ):
         """Creates a new JSONWebTokenHandler from a SERVICE_ACCOUNT, and returns a class with it."""
 
@@ -57,40 +72,18 @@ class AsyncGTTSSession:
             "Authorization": f"Bearer {self._json_web_token_handler}",
         }
 
-    def _process_resp(self, resp: ClientResponse) -> None:
-        if resp.ok:
-            return None
-        elif resp.status == 401:
-            raise AuthorizationException(resp.reason)
-        elif resp.status == 429:
-            raise RatelimitException(resp_content=resp.content, resp_headers=dict(resp.headers))
-        else:
-            raise HTTPException(resp.reason, status_code=resp.status)
-
     @require_session
-    async def synthesize(
-            self, text: str, *, language_code: str = "en", voice_name: str = "en-US-Wavenet-D", ret_type: str = "MP3"
-    ) -> bytes:
+    async def synthesize(self, text_synthesize_request_body: TextSynthesizeRequestBody) -> bytes:
         """Synthesizes text."""
 
-        json_body = {
-            "input": {
-                "text": text
-            },
-            "voice": {
-                "languageCode": language_code,
-                "name": voice_name,
-            },
-            "audioConfig": {
-                "audioEncoding": ret_type
-            }
-        }
-
-        async with self.client_session.post(f"{self._endpoint}text:synthesize", json=json_body, headers=self._headers) \
-                as resp:
+        async with self.client_session.post(
+                f"{self._endpoint}/v1beta1/text:synthesize",
+                json=text_synthesize_request_body.__dict__(),
+                headers=self._headers
+        ) as resp:
             resp = resp
 
-            self._process_resp(resp)
+            _process_resp(resp)
 
             return_json: dict = await resp.json()
 
@@ -106,18 +99,16 @@ class AsyncGTTSSession:
         else:
             query_params = {}
 
-        async with self.client_session.get(f"{self._endpoint}voices", headers=self._headers, params=query_params) \
-                as resp:
+        async with self.client_session.get(
+                f"{self._endpoint}/v1beta1/voices", headers=self._headers, params=query_params
+        ) as resp:
             resp = resp
 
-            self._process_resp(resp)
+            _process_resp(resp)
 
             return_json: dict = await resp.json()
 
-            try:
-                return return_json["voices"]
-            except KeyError:
-                raise UnknownResponse(resp=resp)
+            return return_json
 
 
 __all__ = ["AsyncGTTSSession"]

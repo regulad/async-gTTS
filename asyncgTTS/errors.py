@@ -1,5 +1,6 @@
 from aiohttp import ClientResponse
 
+
 class LibraryException(Exception):
     """Base Error that other errors inherit from."""
 
