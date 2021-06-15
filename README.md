@@ -10,7 +10,7 @@ Similar to [googleapis/python-texttospeech](https://github.com/googleapis/python
 import asyncio
 import json
 
-from asyncgTTS import AsyncGTTSSession, ServiceAccount, TextSynthesizeRequestBody, SynthesisInput
+from asyncgTTS import AsyncGTTSSession, ServiceAccount
 
 
 async def main():
@@ -19,12 +19,8 @@ async def main():
         
     service_account = ServiceAccount.from_service_account_dict(service_account_dict)
     
-    synthesis_input = SynthesisInput("Hello, stinky world!")
-    
-    text_synthesize_request_body = TextSynthesizeRequestBody(synthesis_input)
-
     async with AsyncGTTSSession.from_service_account(service_account) as google_tts:
-        audio_bytes = await google_tts.synthesize(text_synthesize_request_body)
+        audio_bytes = await google_tts.synthesize("vine boom")
 
     with open("Hello_world.mp3", "wb") as f:
         f.write(audio_bytes)

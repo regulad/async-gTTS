@@ -1,12 +1,12 @@
 from base64 import b64decode
-from typing import List
+from typing import List, Dict, Union, overload
 from urllib.parse import urlparse
 
 from aiohttp import ClientSession, ClientResponse
 
 from ._decos import require_session
 from .errors import *
-from .config import TextSynthesizeRequestBody, ServiceAccount
+from .config import TextSynthesizeRequestBody, ServiceAccount, SynthesisInput
 from .token import JSONWebTokenHandler
 
 _GOOGLE_API_ENDPOINT = "https://texttospeech.googleapis.com/v1beta1/"
@@ -31,14 +31,14 @@ class AsyncGTTSSession:
     A ClientSession can also be passed, which will be used to make requests. This is useful for connection pooling."""
 
     def __init__(
-            self, json_web_token_handler: JSONWebTokenHandler,
-            *, client_session: ClientSession = None, endpoint: str = _GOOGLE_API_ENDPOINT
+            self,
+            json_web_token_handler: JSONWebTokenHandler,
+            *,
+            client_session: ClientSession = None,
+            endpoint: str = _GOOGLE_API_ENDPOINT
     ):
         self._json_web_token_handler = json_web_token_handler
-
-        parsed_endpoint = urlparse(endpoint)
-
-        self._endpoint = f"{parsed_endpoint.scheme}://{parsed_endpoint.netloc}/"
+        self._endpoint = endpoint
 
         self.client_session = client_session
         self._client_session_is_passed = self.client_session is not None
@@ -54,7 +54,11 @@ class AsyncGTTSSession:
 
     @classmethod
     def from_service_account(
-            cls, service_account: ServiceAccount, *, client_session: ClientSession = None, endpoint: str = _GOOGLE_API_ENDPOINT
+            cls,
+            service_account: ServiceAccount,
+            *,
+            client_session: ClientSession = None,
+            endpoint: str = _GOOGLE_API_ENDPOINT
     ):
         """Creates a new JSONWebTokenHandler from a SERVICE_ACCOUNT, and returns a class with it."""
 
@@ -72,13 +76,22 @@ class AsyncGTTSSession:
             "Authorization": f"Bearer {self._json_web_token_handler}",
         }
 
+    @overload
+    async def synthesize(self, text: TextSynthesizeRequestBody) -> bytes: ...
+
+    @overload
+    async def synthesize(self, text: str) -> bytes: ...
+
     @require_session
-    async def synthesize(self, text_synthesize_request_body: TextSynthesizeRequestBody) -> bytes:
-        """Synthesizes text."""
+    async def synthesize(self, text):
+        """Synthesizes text using the text:synthesize route."""
+
+        if isinstance(text, str):
+            text: TextSynthesizeRequestBody = TextSynthesizeRequestBody(SynthesisInput(text))
 
         async with self.client_session.post(
-                f"{self._endpoint}/v1beta1/text:synthesize",
-                json=text_synthesize_request_body.__dict__(),
+                f"{self._endpoint}text:synthesize",
+                json=text.__dict__(),
                 headers=self._headers
         ) as resp:
             resp = resp
@@ -93,14 +106,16 @@ class AsyncGTTSSession:
                 raise UnknownResponse(resp=resp)
 
     @require_session
-    async def get_voices(self, language_code: str = None) -> List[dict]:
+    async def get_voices(self, language_code: str = None) -> List[Dict[str, Union[List[str], str, int]]]:
+        """Queries the /voices route for voice that can be used."""
+
         if language_code is not None:
             query_params = {"languageCode": language_code}
         else:
             query_params = {}
 
         async with self.client_session.get(
-                f"{self._endpoint}/v1beta1/voices", headers=self._headers, params=query_params
+                f"{self._endpoint}voices", headers=self._headers, params=query_params
         ) as resp:
             resp = resp
 
@@ -108,7 +123,7 @@ class AsyncGTTSSession:
 
             return_json: dict = await resp.json()
 
-            return return_json
+            return return_json["voices"]
 
 
 __all__ = ["AsyncGTTSSession"]
